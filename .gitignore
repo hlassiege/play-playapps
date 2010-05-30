@@ -1,0 +1,11 @@
+lib/play-playapps.jar
+.DS_Store
+test-result
+nbproject
+tmp
+logs
+eclipse
+*.~*
+dist
+.sass-cache
+.yardopts
