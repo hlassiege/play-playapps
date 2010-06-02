@@ -39,7 +39,7 @@ if play_command == 'new':
 		print "~ "
 		sys.exit(-1)
 		
-if play_command == 'apps:deploy':
+if play_command == 'playapps:deploy':
     
     json = load_module('simplejson')
     
@@ -109,7 +109,11 @@ if play_command == 'apps:deploy':
     try:        
         
         archive_path = os.path.join(tempfile.gettempdir(), '%s.zip' % os.path.basename(application_path))
-        print "~ Creating archive to %s ..." % (os.path.normpath(archive_path))
+        if os.path.basename(application_path) == 'main':
+            td_path = os.path.dirname(application_path)
+        else:
+            td_path = application_path
+        print "~ Creating archive from %s to %s ..." % (td_path, os.path.normpath(archive_path))
         if os.path.exists(archive_path):
             os.remove(archive_path)
         zip = zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_STORED)
@@ -117,16 +121,17 @@ if play_command == 'apps:deploy':
         tmp_dir = os.path.join(application_path, 'tmp')
         logs_dir = os.path.join(application_path, 'logs')
         db_dir = os.path.join(application_path, 'db')
-        for (dirpath, dirnames, filenames) in os.walk(application_path):
-            if dirpath == data_dir or dirpath == tmp_dir or dirpath == logs_dir or dirpath == db_dir:
+        for (dirpath, dirnames, filenames) in os.walk(td_path):
+            if dirpath.startswith(data_dir) or dirpath.startswith(tmp_dir) or dirpath.startswith(logs_dir) or dirpath.startswith(db_dir):
                 continue
             if dirpath.find('/.') > -1:
                 continue
             for file in filenames:
                 if file.find('~') > -1 or file.startswith('.'):
                     continue
-                zip.write(os.path.join(dirpath, file), os.path.join(dirpath[len(application_path):], file))
+                zip.write(os.path.join(dirpath, file), os.path.join(dirpath[len(td_path):], file))
         zip.close()
+        print '~ Done (%sMB)' % (os.path.getsize(archive_path)/1024/1024)
         print '~ '
         
         email = raw_input("~ What is your email? ")

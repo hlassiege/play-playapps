@@ -18,7 +18,7 @@ public class Plugin extends PlayPlugin {
             }
 
             // HTTP only on port 9000
-            if (!Play.configuration.getProperty("http.port", "").equals("9000")) {
+            if (!Play.configuration.getProperty("http.port", "").equals("9000") && !Play.configuration.getProperty("http.port", "").equals("")) {
                 Logger.error("HTTP server must listen on port 9000.\nAdd %playapps.http.port=9000 to your application.conf file.");
                 System.exit(-1);
             }
@@ -27,12 +27,14 @@ public class Plugin extends PlayPlugin {
 
     @Override
     public void onConfigurationRead() {
-        // Patch database
-        if (Play.configuration.containsKey("db")) {
-            Play.configuration.setProperty("db", "mysql:play:play@play");
-        }
+        if ("playapps".equals(Play.id)) {
+            // Patch database
+            if (Play.configuration.containsKey("db")) {
+                Play.configuration.setProperty("db", "mysql:play:play@play");
+            }
 
-        // X-Forward
-        Play.configuration.setProperty("XForwardedSupport", "127.0.0.1");
+            // X-Forward
+            Play.configuration.setProperty("XForwardedSupport", "127.0.0.1");
+        }
     }
 }
