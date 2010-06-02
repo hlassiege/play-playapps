@@ -16,6 +16,12 @@ public class Plugin extends PlayPlugin {
                 Logger.error("You can't run an application in DEV mode on the playapps.net platform.\nAdd %playapps.application.mode=PROD to your application.conf file.");
                 System.exit(-1);
             }
+
+            // HTTP only on port 9000
+            if (!Play.configuration.getProperty("http.port", "").equals("9000")) {
+                Logger.error("HTTP server must listen on port 9000.\nAdd %playapps.http.port=9000 to your application.conf file.");
+                System.exit(-1);
+            }
         }
     }
 
@@ -25,5 +31,8 @@ public class Plugin extends PlayPlugin {
         if (Play.configuration.containsKey("db")) {
             Play.configuration.setProperty("db", "mysql:play:play@play");
         }
+
+        // X-Forward
+        Play.configuration.setProperty("XForwardedSupport", "127.0.0.1");
     }
 }
