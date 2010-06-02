@@ -10,7 +10,7 @@ import signal
 
 # ~~~~~~~~
 
-url = 'http://localhost:9000'
+url = 'http://playapps.net'
 
 #
 
