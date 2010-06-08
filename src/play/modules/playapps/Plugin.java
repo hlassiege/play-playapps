@@ -1,5 +1,6 @@
 package play.modules.playapps;
 
+import java.io.File;
 import play.Logger;
 import play.Play;
 import play.PlayPlugin;
@@ -22,6 +23,10 @@ public class Plugin extends PlayPlugin {
                 Logger.error("HTTP server must listen on port 9000.\nAdd %playapps.http.port=9000 to your application.conf file.");
                 System.exit(-1);
             }
+
+            // Tmp
+            Play.configuration.setProperty("play.tmp", "/slot/storage/tmp");
+            Play.tmpDir = new File("/slot/storage/tmp");
         }
     }
 
@@ -35,6 +40,9 @@ public class Plugin extends PlayPlugin {
 
             // X-Forward
             Play.configuration.setProperty("XForwardedSupport", "127.0.0.1");
+
+            // Attachments
+            Play.configuration.setProperty("attachments.path", "data/attachments");
         }
     }
 }

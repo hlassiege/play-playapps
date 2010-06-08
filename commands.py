@@ -7,10 +7,11 @@ import time
 import mmap
 import stat
 import signal
+import getopt
 
 # ~~~~~~~~
 
-url = 'http://playapps.net'
+url = 'https://www.playapps.net'
 
 #
 
@@ -42,6 +43,17 @@ if play_command == 'new':
 if play_command == 'playapps:deploy':
     
     json = load_module('simplejson')
+    
+    try:
+        optlist, args = getopt.getopt(remaining_args, '', ['url='])
+        for o, a in optlist:
+            if o in ('--url'):
+                url = a
+    except getopt.GetoptError, err:
+        print "~ %s" % str(err)
+        print "~ Invalid options (Use --url to specify an alternate Manager)"
+        print "~ "
+        sys.exit(-1)
     
     class UploadBuffer(object):
         
@@ -167,7 +179,7 @@ if play_command == 'playapps:deploy':
         
         try:
             print '~'
-            print '~ Checking application state...'
+            print '~ Checking %s state...' % slot
             status = json.loads(fetch('/%s/%s/overview/status ' % (email, slot)).read())
             httpMode = status['operation']['httpMode']
             app = status['operation']['application']
