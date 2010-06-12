@@ -110,13 +110,17 @@ if play_command == 'playapps:deploy':
         buf.close()
         buf = open(upload_buf, 'rb')
         mmapped_file_as_string = mmap.mmap(buf.fileno(), 0, access=mmap.ACCESS_READ)
-        data = UploadBuffer(mmapped_file_as_string)
+        if sys.version_info < (2, 6):
+             data = mmapped_file_as_string
+             print '~ Sorry, no upload progress bar with python2.5 (try python2.6) -> Uploading %sMB anyway...' % (os.path.getsize(archive_path)/1024/1024)
+        else:
+             data = UploadBuffer(mmapped_file_as_string)
         request = urllib2.Request('%s%s' % (url, path), data)
         request.add_header('Content-Type', 'multipart/form-data; boundary=%s' % bd)
         request.add_header('email', email)
         request.add_header('password', password)
         request.add_header('Accept', 'application/json')
-        return urllib2.urlopen(request, timeout=10000)
+        return urllib2.urlopen(request)
         
     try:        
         
