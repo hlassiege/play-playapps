@@ -2,12 +2,15 @@ import urllib
 import urllib2
 import getpass
 import os
+import imp
 import tempfile
 import time
 import mmap
 import stat
 import signal
 import getopt
+import zipfile
+from play.utils import *
 
 # ~~~~~~~~
 
@@ -15,37 +18,29 @@ url = 'https://www.playapps.net'
 
 #
 
-if play_command == 'new':
-	try:
-		print "~ Adding playapps.net default configuration to application.conf"
-		print "~"
-		
-		ac = open('%s/conf/application.conf' % application_path, 'r')
-		conf = ac.read()
-		conf = """# playapps.net configuration
-# ~~~~~
-%playapps.application.mode=prod
-%playapps.application.log=INFO
-%playapps.db=mysql:play:play@play
+MODULE = 'playapps'
+COMMANDS = ['playapps:deploy']
+HELP = {
+    'playapps:deploy': "Deploy to your Playapps slot",
+}
 
-""" + conf
-		
-		ac = open('%s/conf/application.conf' % application_path, 'w')
-		ac.write(conf)
-		
-		sys.exit(0)
-				
-	except Exception, err:
-		print "~ %s" % str(err)
-		print "~ "
-		sys.exit(-1)
-		
-if play_command == 'playapps:deploy':
-    
-    json = load_module('simplejson')
-    
+def load_module(name):
+    base = os.path.normpath(os.path.dirname(os.path.realpath(sys.argv[0])))
+    mod_desc = imp.find_module(name, [os.path.join(base, 'framework/pym')])
+    return imp.load_module(name, mod_desc[0], mod_desc[1], mod_desc[2])
+
+json = load_module('simplejson')
+
+def execute(**kargs):
+    global url
+    pLay_command = kargs.get("command")
+    app = kargs.get("app")
+    args = kargs.get("args")
+    env = kargs.get("env")
+    application_path = app.path
+
     try:
-        optlist, args = getopt.getopt(remaining_args, '', ['url='])
+        optlist, args = getopt.getopt(args, '', ['url='])
         for o, a in optlist:
             if o in ('--url'):
                 url = a
@@ -54,9 +49,9 @@ if play_command == 'playapps:deploy':
         print "~ Invalid options (Use --url to specify an alternate Manager)"
         print "~ "
         sys.exit(-1)
-    
+
     class UploadBuffer(object):
-        
+
         width = 55
 
         def __init__(self, mmapped_file_as_string):
@@ -73,7 +68,7 @@ if play_command == 'playapps:deploy':
             self.sent = self.sent + length
             self.progress()
             return self.mmapped_file_as_string.read(length)
-            
+
         def progress(self):
             if self.sent < self.total:
                 done = self.proc(self.sent, self.total)
@@ -87,14 +82,14 @@ if play_command == 'playapps:deploy':
             offset = len(str(int(done))) - .99
             result = ('%d%%' % (done,)).center(self.width)
             return result.replace(' ', '-', int(span - offset))
-    
+
     def fetch(path, data=None):
         request = urllib2.Request('%s%s' % (url, path), data)
         request.add_header('email', email)
         request.add_header('password', password)
         request.add_header('Accept', 'application/json')
         return urllib2.urlopen(request)
-        
+
     def send(path, fd):
         upload_buf = os.path.join(tempfile.gettempdir(), '%s.zip.upload' % os.path.basename(application_path))
         if os.path.exists(upload_buf):
@@ -121,9 +116,9 @@ if play_command == 'playapps:deploy':
         request.add_header('password', password)
         request.add_header('Accept', 'application/json')
         return urllib2.urlopen(request)
-        
-    try:        
-        
+
+    try:
+
         archive_path = os.path.join(tempfile.gettempdir(), '%s.zip' % os.path.basename(application_path))
         if os.path.basename(application_path) == 'main':
             td_path = os.path.dirname(application_path)
@@ -153,7 +148,7 @@ if play_command == 'playapps:deploy':
         email = raw_input("~ What is your email? ")
         password = getpass.getpass("~ What is your password? ")
         print '~'
-        
+
         try:
             slots = json.loads(fetch('/%s' % email).read())
             if not 'slots' in slots:
@@ -164,23 +159,23 @@ if play_command == 'playapps:deploy':
             print '~ Cannot connect (%s)' % e.code
             print '~'
             sys.exit(-1)
-        
+
         print '~ Connected, choose your application:'
         i = 1
         for s in slots['slots']:
             print '~ \t%s. %s' % (i, s['name'])
             i = i + 1
-        
-        try:    
+
+        try:
             slot = int(raw_input('~ ? '))
             slot = slots['slots'][slot-1]['name']
         except Exception, err:
             print '~ Oops (%s)' % err
             print '~'
             sys.exit(-1)
-            
+
         manager = '%s/%s/%s' % (url, email, slot)
-        
+
         try:
             print '~'
             print '~ Checking %s state...' % slot
@@ -193,14 +188,14 @@ if play_command == 'playapps:deploy':
             print '~ Cannot access application (%s)' % e.code
             print '~'
             sys.exit(-1)
-        
+
         if runningTask:
             print '~'
             print '~ There is another task already running. Wait for all tasks completions'
             print '~ Check the web console at %s' % manager
             print '~'
             sys.exit(-1)
-        
+
         if not httpMode == 'maintenance' or not app == 'HALTED':
             print '~'
             print '~ We need to stop your application and set the HTTP server in maintenance before before deploying'
@@ -221,10 +216,10 @@ if play_command == 'playapps:deploy':
             else:
                 print '~'
                 sys.exit(-1)
-        
+
         else:
             print '~ The application is in maintenance mode, continuing'
-            
+
         try:
             print '~'
             print '~ Verifying backups...'
@@ -237,10 +232,10 @@ if play_command == 'playapps:deploy':
             message = "You don't have any backup."
             if len(dates) > 0:
                 message = "Your last backup has been created on %s" % time.ctime(dates[0])
-                
+
             print "~ %s" % message
             sure = raw_input('~ Do you want to create a backup now [Y/n]? ')
-            
+
             if not sure == 'n':
                 print '~'
                 print '~ Creating backup...'
@@ -251,7 +246,7 @@ if play_command == 'playapps:deploy':
                     sys.exit(-1)
                 else:
                     print '~ Ok'
-            
+
         except urllib2.HTTPError, e:
             print '~ Cannot access application (%s)' % e.code
             print '~'
@@ -260,11 +255,11 @@ if play_command == 'playapps:deploy':
         print '~ '
         print '~ Uploading archive...'
         status = json.loads(send('/%s/%s/deploy/archive ' % (email, slot), open(archive_path, "rb")).read())
-        
+
         print
         print '~'
         print '~ Installing....'
-        
+
         done = 0
         installed = False
         while True:
@@ -280,20 +275,20 @@ if play_command == 'playapps:deploy':
                 done = 100
                 installed = True
             time.sleep(3)
-            
+
         print
         print '~'
-        
+
         sure = raw_input('~ Do you want to start the application now [Y/n]? ')
         if sure == 'n':
             print '~'
             print '~ You can access the web console at %s' % manager
             sys.exit(0)
-        
+
         print '~'
         print '~ Starting the application...'
         fetch('/%s/%s/application/start' % (email, slot), urllib.urlencode({}))
-        
+
         while True:
             time.sleep(2)
             status = json.loads(fetch('/%s/%s/overview/status ' % (email, slot)).read())
@@ -315,12 +310,37 @@ if play_command == 'playapps:deploy':
                 print '~ Check the web console at %s' % manager
                 print '~'
                 sys.exit(-1)
-        
+
     except Exception, err:
         print err
         print "~ %s" % str(err)
         print "~ "
         sys.exit(-1)
-    
-    sys.exit(0)
 
+def after(**kargs):
+    command = kargs.get("command")
+    app = kargs.get("app")
+    args = kargs.get("args")
+    env = kargs.get("env")
+
+    if command == 'new':
+        try:
+            print "~ Adding playapps.net default configuration to application.conf"
+            print "~"
+
+            ac = open('%s/conf/application.conf' % app.path, 'r')
+            conf = ac.read()
+            conf = """# playapps.net configuration
+# ~~~~~
+%playapps.application.mode=prod
+%playapps.application.log=INFO
+%playapps.db=mysql:play:play@play
+
+""" + conf
+            ac = open('%s/conf/application.conf' % app.path, 'w')
+            ac.write(conf)
+
+        except Exception, err:
+            print "~ %s" % str(err)
+            print "~ "
+            sys.exit(-1)
