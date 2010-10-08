@@ -10,7 +10,7 @@ public class Init {
     static {
         if("playapps".equals(Play.id)) {
             File logs = Play.getFile("../logs");
-            if (logs.exists()) {
+            if (!logs.exists()) {
                 logs.mkdir();
             }
             PropertyConfigurator.configure(Plugin.class.getResource("playappsLog4j.properties"));
