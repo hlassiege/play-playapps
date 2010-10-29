@@ -335,6 +335,7 @@ def after(**kargs):
 %playapps.application.mode=prod
 %playapps.application.log=INFO
 %playapps.db=mysql:play:play@play
+%playapps.jpa.ddl=update
 
 """ + conf
             ac = open('%s/conf/application.conf' % app.path, 'w')
