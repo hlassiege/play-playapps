@@ -15,7 +15,6 @@ public class Init {
             }
             PropertyConfigurator.configure(Plugin.class.getResource("playappsLog4j.properties"));
             Logger.log4j = org.apache.log4j.Logger.getLogger("play");
-            Play.plugins.add(new PlayappsDisabler());
         }
     }
 }
