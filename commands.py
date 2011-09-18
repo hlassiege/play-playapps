@@ -127,13 +127,22 @@ def execute(**kargs):
         print "~ Creating archive from %s to %s ..." % (td_path, os.path.normpath(archive_path))
         if os.path.exists(archive_path):
             os.remove(archive_path)
+            
+        excludeFolders = app.readConf('playapps.exclude.folders').split(',')
+        if not excludeFolders:
+            excludeFolders.remove('')
+        excludeFolders.append('data')
+        excludeFolders.append('tmp')
+        excludeFolders.append('logs')
+        excludeFolders.append('db')
+        excludeFolders = [os.path.join(application_path, s) for s in excludeFolders]
+        for excludeFolder in excludeFolders:
+            print '~ Exclude folder from zip: %s' % excludeFolder
+            
         zip = zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_STORED)
-        data_dir = os.path.join(application_path, 'data')
-        tmp_dir = os.path.join(application_path, 'tmp')
-        logs_dir = os.path.join(application_path, 'logs')
-        db_dir = os.path.join(application_path, 'db')
         for (dirpath, dirnames, filenames) in os.walk(td_path):
-            if dirpath.startswith(data_dir) or dirpath.startswith(tmp_dir) or dirpath.startswith(logs_dir) or dirpath.startswith(db_dir):
+            isExclude = [excludeFolder for excludeFolder in excludeFolders if dirpath.startswith(excludeFolder)]
+            if isExclude:
                 continue
             if dirpath.find('/.') > -1:
                 continue
