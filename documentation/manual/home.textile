@@ -89,7 +89,7 @@ bc. ~$ play playapps:deploy my-test-project/
 Then select the slot you want to deploy your new application on:
 
 bc. ~ Connected, choose your application:
-~ 	1. playapps.net
+~   1. playapps.net
 ~ 	2. mytest
 ~ ? 2
 
@@ -152,6 +152,11 @@ bc. %playapps.application.mode=prod
 %playapps.db=mysql:play:play@play
 %playapps.http.port=9000
 %playapps.jpa.ddl=update
+
+You can exclude folders from the deployment with the following configuration in your application.conf file
+bc. playapps.exclude.folders=.hg,.settings,eclipse,data,test-result,test,.classpath,.project
+
+Every folder listed in playapps.exclude.folders will not be deployed on playapps.
 
 Running application in **prod mode** and on **HTTP port 9000** is required for playapps. Also, if your application is using a database, you need to configure the db property to '**mysql:play:play@play**'. And you can set the log level to any value from **DEBUG** to **ERROR**.
 
