@@ -24,6 +24,17 @@ HELP = {
     'playapps:deploy': "Deploy to your Playapps slot",
 }
 
+# Created handler
+baseHandler = urllib2.BaseHandler() 
+
+# 2 apply the handler to an opener
+opener = urllib2.build_opener(baseHandler)
+
+# 3. Install the openers
+urllib2.install_opener(opener)
+
+
+
 def load_module(name):
     base = os.path.normpath(os.path.dirname(os.path.realpath(sys.argv[0])))
     mod_desc = imp.find_module(name, [os.path.join(base, 'framework/pym')])
