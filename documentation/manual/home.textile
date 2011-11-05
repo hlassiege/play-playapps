@@ -90,7 +90,7 @@ Then select the slot you want to deploy your new application on:
 
 bc. ~ Connected, choose your application:
 ~   1. playapps.net
-~ 	2. mytest
+~   2. mytest
 ~ ? 2
 
 The script will check your application state. In order to deploy an new version of your application, playapps will set your slot in **maintenance mode**. It means that it will stop the play application and switch the HTTP server to private mode. This way during the deployement process your users will see a maintenance page if they try to access your application.
@@ -138,6 +138,14 @@ Once your application is installed and started, the HTTP server is still in priv
 When you are sure that your new application is ready, you can go to the playapps.net manager and open the HTTP server again.
 
 Done! Your application is now live.
+
+h4. Deploying in batch mode
+
+If you want to deploy in batch mode, you can declare all parameters in the command line arguments
+
+bc. ~ play playapps:deploy --email me@mail.com --pwd myPwd --slot 1 --batch
+
+In batch mode, the application is automatically shutdown, a backup is created and the server automatically restart after the update.
 
 h2. <a>Prepare an existing application for playapps deployement</a>
 
