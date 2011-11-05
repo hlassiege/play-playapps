@@ -11,7 +11,7 @@ import signal
 import getopt
 import zipfile
 from play.utils import *
-
+from optparse import OptionParser
 # ~~~~~~~~
 
 url = 'https://www.playapps.net'
@@ -33,14 +33,16 @@ opener = urllib2.build_opener(baseHandler)
 # 3. Install the openers
 urllib2.install_opener(opener)
 
-
-
 def load_module(name):
     base = os.path.normpath(os.path.dirname(os.path.realpath(sys.argv[0])))
     mod_desc = imp.find_module(name, [os.path.join(base, 'framework/pym')])
     return imp.load_module(name, mod_desc[0], mod_desc[1], mod_desc[2])
 
 json = load_module('simplejson')
+
+class MyOptionParser(OptionParser):
+    def error(self, msg):
+        pass
 
 def execute(**kargs):
     global url
@@ -50,17 +52,28 @@ def execute(**kargs):
     env = kargs.get("env")
     application_path = app.path
 
-    try:
-        optlist, args = getopt.getopt(args, '', ['url='])
-        for o, a in optlist:
-            if o in ('--url'):
-                url = a
-    except getopt.GetoptError, err:
-        print "~ %s" % str(err)
-        print "~ Invalid options (Use --url to specify an alternate Manager)"
-        print "~ "
-        sys.exit(-1)
-
+    parser = MyOptionParser()
+    parser.add_option("-e", "--email", dest="email", help="Your email")
+    parser.add_option("-p", "--pwd", dest="pwd", help="Your password")
+    parser.add_option("-u", "--url", dest="url", help="Nemrod url")
+    parser.add_option("-b", "--batch", action="store_false", dest="interactive", default=True, help="Interactive mode")
+    parser.add_option("-s", "--slot", type="int", dest="slot", help="Your slot number")
+    options, args = parser.parse_args(args)    
+    
+    email =''
+    password=''
+    slot=0
+    
+    if options.email:
+        email = options.email
+    if options.pwd:
+        password = options.pwd
+    if options.url:
+        url = options.url
+    if options.slot:
+        slot = options.slot
+    interactive = options.interactive
+        
     class UploadBuffer(object):
 
         width = 55
@@ -138,22 +151,13 @@ def execute(**kargs):
         print "~ Creating archive from %s to %s ..." % (td_path, os.path.normpath(archive_path))
         if os.path.exists(archive_path):
             os.remove(archive_path)
-            
-        excludeFolders = app.readConf('playapps.exclude.folders').split(',')
-        if not excludeFolders:
-            excludeFolders.remove('')
-        excludeFolders.append('data')
-        excludeFolders.append('tmp')
-        excludeFolders.append('logs')
-        excludeFolders.append('db')
-        excludeFolders = [os.path.join(application_path, s) for s in excludeFolders]
-        for excludeFolder in excludeFolders:
-            print '~ Exclude folder from zip: %s' % excludeFolder
-            
         zip = zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_STORED)
+        data_dir = os.path.join(application_path, 'data')
+        tmp_dir = os.path.join(application_path, 'tmp')
+        logs_dir = os.path.join(application_path, 'logs')
+        db_dir = os.path.join(application_path, 'db')
         for (dirpath, dirnames, filenames) in os.walk(td_path):
-            isExclude = [excludeFolder for excludeFolder in excludeFolders if dirpath.startswith(excludeFolder)]
-            if isExclude:
+            if dirpath.startswith(data_dir) or dirpath.startswith(tmp_dir) or dirpath.startswith(logs_dir) or dirpath.startswith(db_dir):
                 continue
             if dirpath.find('/.') > -1:
                 continue
@@ -165,8 +169,10 @@ def execute(**kargs):
         print '~ Done (%sMB)' % (os.path.getsize(archive_path)/1024/1024)
         print '~ '
         
-        email = raw_input("~ What is your email? ")
-        password = getpass.getpass("~ What is your password? ")
+        if not email:
+            email = raw_input("~ What is your email? ")
+        if not password:
+            password = getpass.getpass("~ What is your password? ")
         print '~'
 
         try:
@@ -187,7 +193,10 @@ def execute(**kargs):
             i = i + 1
 
         try:
-            slot = int(raw_input('~ ? '))
+            if slot==0:
+                slot = int(raw_input('~ ? '))
+            else:
+                print '~ %s' % slot
             slot = slots['slots'][slot-1]['name']
         except Exception, err:
             print '~ Oops (%s)' % err
@@ -215,11 +224,14 @@ def execute(**kargs):
             print '~ Check the web console at %s' % manager
             print '~'
             sys.exit(-1)
-
+        
         if not httpMode == 'maintenance' or not app == 'HALTED':
             print '~'
             print '~ We need to stop your application and set the HTTP server in maintenance before before deploying'
-            sure = raw_input('~ Are you sure [y/N]? ')
+            if not interactive:
+                sure = 'y'
+            else:    
+                sure = raw_input('~ Are you sure [y/N]? ')
             if sure == 'y':
                 print '~'
                 print '~ Setting the slot in maintenance mode...'
@@ -254,7 +266,10 @@ def execute(**kargs):
                 message = "Your last backup has been created on %s" % time.ctime(dates[0])
 
             print "~ %s" % message
-            sure = raw_input('~ Do you want to create a backup now [Y/n]? ')
+            if not interactive:
+                sure = 'y'
+            else:
+                sure = raw_input('~ Do you want to create a backup now [Y/n]? ')
 
             if not sure == 'n':
                 print '~'
@@ -298,8 +313,11 @@ def execute(**kargs):
 
         print
         print '~'
-
-        sure = raw_input('~ Do you want to start the application now [Y/n]? ')
+        
+        if not interactive:
+            sure='y'
+        else:
+            sure = raw_input('~ Do you want to start the application now [Y/n]? ')
         if sure == 'n':
             print '~'
             print '~ You can access the web console at %s' % manager
